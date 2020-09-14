@@ -10,7 +10,7 @@ ADD_X=WINDOW_WIDTH/2-ADD_WIDTH/2
 ADD_Y=3*WINDOW_WIDTH/4
 
 MENU_WIDTH=WINDOW_WIDTH/4
-MENU_HEIGHT=MENU_WIDTH
+MENU_HEIGHT=1.4*MENU_WIDTH
 MENU_X=WINDOW_WIDTH-MENU_WIDTH
 MENU_Y=0
 
@@ -35,6 +35,12 @@ PIANO_UNSELECTED_WHITE_X=PIANO_X+((PIANO_WIDTH/7)-PIANO_UNSELECTED_SIZE)/2
 PIANO_UNSELECTED_BLACK_Y=PIANO_Y+1*PIANO_HEIGHT/3
 PIANO_UNSELECTED_BLACK_X=PIANO_X+(PIANO_WIDTH/11)
 
+STEP_X=MENU_X+15
+STEP_Y=PIANO_Y+PIANO_HEIGHT+15
+STEP_WIDTH=30
+STEP_HEIGHT=30
+STEP_SPACING=15
+
 UI_BTN_ADD=0
 UI_FORM_MENU=1
 UI_FORM_TEMPO=2
@@ -56,6 +62,14 @@ UI_PIANO_Eb=17
 UI_PIANO_Gb=18
 UI_PIANO_Ab=19
 UI_PIANO_Bb=20
+UI_STEP_1=21
+UI_STEP_2=22
+UI_STEP_3=23
+UI_STEP_4=24
+UI_STEP_SEL_1=25
+UI_STEP_SEL_2=26
+UI_STEP_SEL_3=27
+UI_STEP_SEL_4=28
 
 UI_PITCHES = [UI_PIANO_C, UI_PIANO_Db, UI_PIANO_D, UI_PIANO_Eb, UI_PIANO_E, UI_PIANO_F, UI_PIANO_Gb, UI_PIANO_G, UI_PIANO_Ab, UI_PIANO_A, UI_PIANO_Bb, UI_PIANO_B]
 
@@ -67,11 +81,11 @@ TEMPOS = ["0.2", "0.4", "0.6", "0.8", "1"]
 
 screen=None
 
-ui = [None]*21
+ui = [None]*29
 
 guys=[]
 sounds=[]
-tempo=4
+tempo=2
 
 def clean_int(num):
     if num==None:
@@ -109,7 +123,7 @@ class Guy(GameObject):
     def __init__(self, id):
         GameObject.__init__(self, 'guy'+str(id)+'.png', random.randint(0,WINDOW_WIDTH), random.randint(0,WINDOW_HEIGHT))
         self.id=id
-        self.pitch=11
+        self.pitch=0
         self.step=0
 
     def play(self):
@@ -139,26 +153,7 @@ def change_tempo(new_tempo):
         ui[UI_SEL_TEMPO_02+new_tempo].visible=True
         tempo=new_tempo
 
-# define a main function
-def main():
-    global screen
-    # initialize the pygame module
-    pygame.mixer.pre_init(frequency=48000, size=-16, channels=2, buffer=512, devicename=None)
-    pygame.init()
-
-    for i in range(GUY_TYPES):
-        sounds.append([])
-        for j in range(12):
-            sounds[i].append(dict())
-            for k in ["0.2","0.4","0.6","0.8","1"]:
-                sounds[i][j][k]=pygame.mixer.Sound(os.path.join('sound',str(i),str(j)+"-"+k+".wav"))
-
-    pygame.display.set_caption("minimal program")
-
-    screen = pygame.display.set_mode((WINDOW_WIDTH,WINDOW_HEIGHT))
-
-    screen.fill((255,255,255))
-
+def init_ui():
     ui[UI_BTN_ADD] = GameObject("add.png", ADD_X, ADD_Y, ADD_WIDTH, ADD_HEIGHT)
 
     ui[UI_FORM_MENU] = GameObject("menu.png", MENU_X, MENU_Y, MENU_WIDTH, MENU_HEIGHT)
@@ -203,6 +198,40 @@ def main():
 
     ui[UI_PIANO_Bb] = GameObject("unselected.png", PIANO_UNSELECTED_BLACK_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*5, PIANO_UNSELECTED_BLACK_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
 
+    ui[UI_STEP_1] = GameObject("step1.png", STEP_X, STEP_Y, STEP_WIDTH, STEP_HEIGHT)
+    ui[UI_STEP_SEL_1] = GameObject("unselected.png", STEP_X, STEP_Y, STEP_WIDTH, STEP_HEIGHT, visible=False)
+
+    ui[UI_STEP_2] = GameObject("step2.png", STEP_X+STEP_WIDTH+STEP_SPACING, STEP_Y, STEP_WIDTH, STEP_HEIGHT)
+    ui[UI_STEP_SEL_2] = GameObject("unselected.png", STEP_X+STEP_WIDTH+STEP_SPACING, STEP_Y, STEP_WIDTH, STEP_HEIGHT, visible=False)
+
+    ui[UI_STEP_3] = GameObject("step3.png", STEP_X+(STEP_WIDTH+STEP_SPACING)*2, STEP_Y, STEP_WIDTH, STEP_HEIGHT)
+    ui[UI_STEP_SEL_3] = GameObject("unselected.png", STEP_X+(STEP_WIDTH+STEP_SPACING)*2, STEP_Y, STEP_WIDTH, STEP_HEIGHT, visible=False)
+
+    ui[UI_STEP_4] = GameObject("step4.png", STEP_X+(STEP_WIDTH+STEP_SPACING)*3, STEP_Y, STEP_WIDTH, STEP_HEIGHT)
+    ui[UI_STEP_SEL_4] = GameObject("unselected.png", STEP_X+(STEP_WIDTH+STEP_SPACING)*3, STEP_Y, STEP_WIDTH, STEP_HEIGHT, visible=False)
+
+# define a main function
+def main():
+    global screen
+    # initialize the pygame module
+    pygame.mixer.pre_init(frequency=48000, size=-16, channels=2, buffer=512, devicename=None)
+    pygame.init()
+
+    for i in range(GUY_TYPES):
+        sounds.append([])
+        for j in range(12):
+            sounds[i].append(dict())
+            for k in ["0.2","0.4","0.6","0.8","1"]:
+                sounds[i][j][k]=pygame.mixer.Sound(os.path.join('sound',str(i),str(j)+"-"+k+".wav"))
+
+    pygame.display.set_caption("minimal program")
+
+    screen = pygame.display.set_mode((WINDOW_WIDTH,WINDOW_HEIGHT))
+
+    screen.fill((255,255,255))
+
+    init_ui()
+
     IMAGE_UNSELECTED = load_png("unselected.png")[0]
     IMAGE_SELECTED = load_png("selected.png")[0]
 
@@ -214,6 +243,7 @@ def main():
     next=0
 
     selected_note=-1
+    selected_step=-1
 
     # main loop
     while running:
@@ -231,20 +261,34 @@ def main():
                         add_action()
                     elif changing_tempo==True:
                         changing_tempo=False
-                    elif selected_note!=-1:
-                        for pitch in range(len(UI_PITCHES)):
-                            if guys[len(guys)-1].pitch==pitch:
-                                pass
-                            elif ui[UI_PITCHES[pitch]].check_point(event.pos):
-                                guys[len(guys)-1].pitch=pitch
-                                ui[UI_PITCHES[selected_note]].set_image(IMAGE_UNSELECTED)
-                                selected_note=pitch
-                                ui[UI_PITCHES[selected_note]].set_image(IMAGE_SELECTED)
+                    else:
+                        if selected_note!=-1:
+                            for pitch in range(len(UI_PITCHES)):
+                                if guys[len(guys)-1].pitch==pitch:
+                                    pass
+                                elif ui[UI_PITCHES[pitch]].check_point(event.pos):
+                                    guys[len(guys)-1].pitch=pitch
+                                    ui[UI_PITCHES[selected_note]].set_image(IMAGE_UNSELECTED)
+                                    selected_note=pitch
+                                    ui[UI_PITCHES[selected_note]].set_image(IMAGE_SELECTED)
+                        if selected_step!=-1:
+                            for step in range(4):
+                                if guys[len(guys)-1].step==step:
+                                    pass
+                                elif ui[UI_STEP_1+step].check_point(event.pos):
+                                    guys[len(guys)-1].step=step
+                                    ui[UI_STEP_SEL_1+selected_step].visible=False
+                                    selected_step=step
+                                    ui[UI_STEP_SEL_1+selected_step].visible=True
                 elif event.button==3:
-                    for i in range(len(guys)-1, -1, -1):
-                        if guys[i].check_point(event.pos):
-                            guys.pop(i)
-                            break
+                    if not grabbing:
+                        for i in range(len(guys)-1, -1, -1):
+                            if guys[i].check_point(event.pos):
+                                guys.pop(i)
+                                if len(guys)==0:
+                                    selected_note=-1
+                                    selected_step=-1
+                                break
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button==1:
                     if ui[UI_SEL_TEMPO_02+tempo].check_point(event.pos):
@@ -257,6 +301,11 @@ def main():
                                 ui[UI_PITCHES[selected_note]].set_image(IMAGE_UNSELECTED)
                                 selected_note=guys[len(guys)-1].pitch
                                 ui[UI_PITCHES[selected_note]].set_image(IMAGE_SELECTED)
+                            if guys[len(guys)-1].step!=selected_step:
+                                if selected_step!=-1:
+                                    ui[UI_STEP_SEL_1+selected_step].visible = False
+                                selected_step=guys[len(guys)-1].step
+                                ui[UI_STEP_SEL_1+selected_step].visible = True
                             break
             elif event.type == pygame.MOUSEMOTION:
                 if grabbing:
