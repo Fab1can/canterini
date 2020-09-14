@@ -6,24 +6,34 @@ WINDOW_HEIGHT=800
 
 ADD_WIDTH=32
 ADD_HEIGHT=32
-ADD_X=int(WINDOW_WIDTH/2-ADD_WIDTH/2)
-ADD_Y=int(3*WINDOW_WIDTH/4)
+ADD_X=WINDOW_WIDTH/2-ADD_WIDTH/2
+ADD_Y=3*WINDOW_WIDTH/4
 
-MENU_WIDTH=int(WINDOW_WIDTH/4)
+MENU_WIDTH=WINDOW_WIDTH/4
 MENU_HEIGHT=MENU_WIDTH
 MENU_X=WINDOW_WIDTH-MENU_WIDTH
 MENU_Y=0
 
-TEMPO_WIDTH=int(MENU_WIDTH*3/5)
-TEMPO_HEIGHT=int(TEMPO_WIDTH/2)
+TEMPO_WIDTH=MENU_WIDTH*3/5
+TEMPO_HEIGHT=TEMPO_WIDTH/2
 TEMPO_X=MENU_X+MENU_WIDTH/2-TEMPO_WIDTH/2
 TEMPO_Y=MENU_Y+32
 
-SEL_TEMPO_WIDTH=16
-SEL_TEMPO_HEIGHT=16
-SEL_TEMPO_X=TEMPO_X+13
-SEL_TEMPO_Y=TEMPO_Y+5
+SEL_TEMPO_WIDTH=20
+SEL_TEMPO_HEIGHT=20
+SEL_TEMPO_X=TEMPO_X+10
+SEL_TEMPO_Y=TEMPO_Y+15
 SEL_TEMPO_SPAN=20
+
+PIANO_X=TEMPO_X-5
+PIANO_Y=TEMPO_Y+TEMPO_HEIGHT+15
+PIANO_HEIGHT=50
+PIANO_WIDTH=140
+PIANO_UNSELECTED_SIZE=PIANO_WIDTH/10
+PIANO_UNSELECTED_WHITE_Y=PIANO_Y+8*PIANO_HEIGHT/12
+PIANO_UNSELECTED_WHITE_X=PIANO_X+((PIANO_WIDTH/7)-PIANO_UNSELECTED_SIZE)/2
+PIANO_UNSELECTED_BLACK_Y=PIANO_Y+1*PIANO_HEIGHT/3
+PIANO_UNSELECTED_BLACK_X=PIANO_X+(PIANO_WIDTH/11)
 
 UI_BTN_ADD=0
 UI_FORM_MENU=1
@@ -33,6 +43,21 @@ UI_SEL_TEMPO_04=4
 UI_SEL_TEMPO_06=5
 UI_SEL_TEMPO_08=6
 UI_SEL_TEMPO_1=7
+UI_PIANO=8
+UI_PIANO_C=9
+UI_PIANO_D=10
+UI_PIANO_E=11
+UI_PIANO_F=12
+UI_PIANO_G=13
+UI_PIANO_A=14
+UI_PIANO_B=15
+UI_PIANO_Db=16
+UI_PIANO_Eb=17
+UI_PIANO_Gb=18
+UI_PIANO_Ab=19
+UI_PIANO_Bb=20
+
+UI_PITCHES = [UI_PIANO_C, UI_PIANO_Db, UI_PIANO_D, UI_PIANO_Eb, UI_PIANO_E, UI_PIANO_F, UI_PIANO_Gb, UI_PIANO_G, UI_PIANO_Ab, UI_PIANO_A, UI_PIANO_Bb, UI_PIANO_B]
 
 DEBUG_COLOR=(255,0,0)
 
@@ -42,19 +67,27 @@ TEMPOS = ["0.2", "0.4", "0.6", "0.8", "1"]
 
 screen=None
 
+ui = [None]*21
+
 guys=[]
 sounds=[]
 tempo=4
+
+def clean_int(num):
+    if num==None:
+        return None
+    else:
+        return int(num)
 
 class GameObject(pygame.sprite.Sprite):
     def __init__(self, filename, x, y, width=None, height=None, debug=False, visible=True):
         pygame.sprite.Sprite.__init__(self)
         self.image, self.rect = load_png(filename)
-        self.image = pygame.transform.scale(self.image, (width or self.rect[2], height or self.rect[3]))
-        #screen = pygame.display.get_surface()
+        self.image = pygame.transform.scale(self.image, (clean_int(width) or self.rect[2], clean_int(height) or self.rect[3]))
         self.area = screen.get_rect()
-        self.rect[0] = x
-        self.rect[1] = y
+        self.rect=self.image.get_rect()
+        self.rect[0] = int(x)
+        self.rect[1] = int(y)
         self.debug = debug
         self.visible = visible
 
@@ -66,7 +99,10 @@ class GameObject(pygame.sprite.Sprite):
         if self.visible:
             screen.blit(self.image, self.rect)
         if self.debug:
-            pygame.draw.rect(screen,DEBUG_COLOR,self.rect)
+            pygame.draw.rect(screen,DEBUG_COLOR,self.rect,True)
+
+    def set_image(self, image):
+        self.image = pygame.transform.scale(image, (self.rect[2], self.rect[3]))
 
 
 class Guy(GameObject):
@@ -96,6 +132,13 @@ def load_png(name):
 def add_action():
     guys.append(Guy(0))
 
+def change_tempo(new_tempo):
+    global tempo
+    if tempo!=new_tempo:
+        ui[UI_SEL_TEMPO_02+tempo].visible=False
+        ui[UI_SEL_TEMPO_02+new_tempo].visible=True
+        tempo=new_tempo
+
 # define a main function
 def main():
     global screen
@@ -116,29 +159,61 @@ def main():
 
     screen.fill((255,255,255))
 
-    ui = []*10
-
     ui[UI_BTN_ADD] = GameObject("add.png", ADD_X, ADD_Y, ADD_WIDTH, ADD_HEIGHT)
 
     ui[UI_FORM_MENU] = GameObject("menu.png", MENU_X, MENU_Y, MENU_WIDTH, MENU_HEIGHT)
 
     ui[UI_FORM_TEMPO] = GameObject("tempo.png", TEMPO_X, TEMPO_Y, TEMPO_WIDTH, TEMPO_HEIGHT)
 
-    ui[UI_SEL_TEMPO_02] = GameObject("selected.png", SEL_TEMPO_X+0*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=0==tempo)
+    seldebug=False
 
-    ui[UI_SEL_TEMPO_04] = GameObject("selected.png", SEL_TEMPO_X+1*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=1==tempo)
+    ui[UI_SEL_TEMPO_02] = GameObject("selected.png", SEL_TEMPO_X+0*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=0==tempo, debug=seldebug)
 
-    ui[UI_SEL_TEMPO_06] = GameObject("selected.png", SEL_TEMPO_X+2*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=2==tempo)
+    ui[UI_SEL_TEMPO_04] = GameObject("selected.png", SEL_TEMPO_X+1*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=1==tempo, debug=seldebug)
 
-    ui[UI_SEL_TEMPO_08] = GameObject("selected.png", SEL_TEMPO_X+3*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=3==tempo)
+    ui[UI_SEL_TEMPO_06] = GameObject("selected.png", SEL_TEMPO_X+2*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=2==tempo, debug=seldebug)
 
-    ui[UI_SEL_TEMPO_1] = GameObject("selected.png", SEL_TEMPO_X+4*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=4==tempo)
+    ui[UI_SEL_TEMPO_08] = GameObject("selected.png", SEL_TEMPO_X+3*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=3==tempo, debug=seldebug)
+
+    ui[UI_SEL_TEMPO_1] = GameObject("selected.png", SEL_TEMPO_X+4*SEL_TEMPO_SPAN, SEL_TEMPO_Y, SEL_TEMPO_WIDTH, SEL_TEMPO_HEIGHT, visible=4==tempo, debug=seldebug)
+
+    ui[UI_PIANO] = GameObject("piano.png", PIANO_X, PIANO_Y, PIANO_WIDTH, PIANO_HEIGHT)
+
+    ui[UI_PIANO_C] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_D] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X+PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_E] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*2, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_F] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*3, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_G] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*4, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_A] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*5, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_B] = GameObject("unselected.png", PIANO_UNSELECTED_WHITE_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*6, PIANO_UNSELECTED_WHITE_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_Db] = GameObject("unselected.png", PIANO_UNSELECTED_BLACK_X, PIANO_UNSELECTED_BLACK_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_Eb] = GameObject("unselected.png", PIANO_UNSELECTED_BLACK_X+PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2, PIANO_UNSELECTED_BLACK_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_Gb] = GameObject("unselected.png", PIANO_UNSELECTED_BLACK_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*3, PIANO_UNSELECTED_BLACK_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_Ab] = GameObject("unselected.png", PIANO_UNSELECTED_BLACK_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*4, PIANO_UNSELECTED_BLACK_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    ui[UI_PIANO_Bb] = GameObject("unselected.png", PIANO_UNSELECTED_BLACK_X+(PIANO_UNSELECTED_SIZE+((PIANO_WIDTH/14)-(PIANO_UNSELECTED_SIZE/2))*2)*5, PIANO_UNSELECTED_BLACK_Y, PIANO_UNSELECTED_SIZE, PIANO_UNSELECTED_SIZE)
+
+    IMAGE_UNSELECTED = load_png("unselected.png")[0]
+    IMAGE_SELECTED = load_png("selected.png")[0]
 
     running = True
     grabbing = False
+    changing_tempo = False
 
     step=0
     next=0
+
+    selected_note=-1
 
     # main loop
     while running:
@@ -152,27 +227,50 @@ def main():
                 if event.button==1:
                     if grabbing:
                         grabbing = False
-                    elif ADD_X+ADD_WIDTH>=event.pos[0]>=ADD_X and ADD_Y+ADD_HEIGHT>=event.pos[1]>=ADD_Y:
+                    elif ui[UI_BTN_ADD].check_point(event.pos):
                         add_action()
+                    elif changing_tempo==True:
+                        changing_tempo=False
+                    elif selected_note!=-1:
+                        for pitch in range(len(UI_PITCHES)):
+                            if guys[len(guys)-1].pitch==pitch:
+                                pass
+                            elif ui[UI_PITCHES[pitch]].check_point(event.pos):
+                                guys[len(guys)-1].pitch=pitch
+                                ui[UI_PITCHES[selected_note]].set_image(IMAGE_UNSELECTED)
+                                selected_note=pitch
+                                ui[UI_PITCHES[selected_note]].set_image(IMAGE_SELECTED)
                 elif event.button==3:
                     for i in range(len(guys)-1, -1, -1):
-                        if guys[i].rect[0]+guys[i].rect[2]>=event.pos[0]>=guys[i].rect[0] and guys[i].rect[1]+guys[i].rect[3]>=event.pos[1]>=guys[i].rect[1]:
+                        if guys[i].check_point(event.pos):
                             guys.pop(i)
                             break
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button==1:
+                    if ui[UI_SEL_TEMPO_02+tempo].check_point(event.pos):
+                        changing_tempo=True
                     for i in range(len(guys)-1, -1, -1):
-                        if guys[i].rect[0]+guys[i].rect[2]>=event.pos[0]>=guys[i].rect[0] and guys[i].rect[1]+guys[i].rect[3]>=event.pos[1]>=guys[i].rect[1]:
+                        if guys[i].check_point(event.pos):
                             guys[i], guys[len(guys)-1] = guys[len(guys)-1], guys[i]
                             grabbing = True
+                            if guys[len(guys)-1].pitch!=selected_note:
+                                ui[UI_PITCHES[selected_note]].set_image(IMAGE_UNSELECTED)
+                                selected_note=guys[len(guys)-1].pitch
+                                ui[UI_PITCHES[selected_note]].set_image(IMAGE_SELECTED)
                             break
             elif event.type == pygame.MOUSEMOTION:
                 if grabbing:
                     guys[len(guys)-1].rect[0]=event.pos[0]-guys[len(guys)-1].rect[2]/2
                     guys[len(guys)-1].rect[1]=event.pos[1]-guys[len(guys)-1].rect[3]/2
+                elif changing_tempo:
+                    for ui_indexes in range(UI_SEL_TEMPO_02, UI_SEL_TEMPO_1+1):
+                        if ui_indexes==UI_SEL_TEMPO_02+tempo:
+                            pass
+                        elif ui[ui_indexes].check_point(event.pos):
+                            change_tempo(ui_indexes-UI_SEL_TEMPO_02)
 
         if time.time()>next:
-            print(step)
+            #print(step)
             next=time.time()+float(TEMPOS[tempo])
             for guy in guys:
                 if guy.step==step:
